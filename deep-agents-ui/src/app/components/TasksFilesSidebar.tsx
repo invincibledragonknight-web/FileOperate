@@ -15,7 +15,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { TodoItem, FileItem } from "@/app/types/types";
+import type { FileInputMap, FileItem, FileMap, TodoItem } from "@/app/types/types";
 import { useChatContext } from "@/providers/ChatProvider";
 import { cn } from "@/lib/utils";
 import { FileViewDialog } from "@/app/components/FileViewDialog";
@@ -25,8 +25,8 @@ export function FilesPopover({
   setFiles,
   editDisabled,
 }: {
-  files: Record<string, string>;
-  setFiles: (files: Record<string, string>) => Promise<void>;
+  files: FileMap;
+  setFiles: (files: FileInputMap) => Promise<void>;
   editDisabled: boolean;
 }) {
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
@@ -113,8 +113,8 @@ export function FilesPopover({
 
 export const TasksFilesSidebar = React.memo<{
   todos: TodoItem[];
-  files: Record<string, string>;
-  setFiles: (files: Record<string, string>) => Promise<void>;
+  files: FileMap;
+  setFiles: (files: FileInputMap) => Promise<void>;
 }>(({ todos, files, setFiles }) => {
   const { isLoading, interrupt } = useChatContext();
   const [tasksOpen, setTasksOpen] = useState(false);

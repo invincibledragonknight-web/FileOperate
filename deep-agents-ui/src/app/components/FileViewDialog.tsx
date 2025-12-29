@@ -126,12 +126,10 @@ export const FileViewDialog = React.memo<{
   }, [file, onClose]);
 
   const fileNameIsValid = useMemo(() => {
-    return (
-      fileName.trim() !== "" &&
-      !fileName.includes("/") &&
-      !fileName.includes(" ")
-    );
-  }, [fileName]);
+    if (fileName.trim() === "") return false;
+    if (file !== null) return true;
+    return !fileName.includes("/") && !fileName.includes(" ");
+  }, [file, fileName]);
 
   return (
     <Dialog

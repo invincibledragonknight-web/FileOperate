@@ -20,6 +20,16 @@ export interface FileItem {
   content: string;
 }
 
+export type FileData = {
+  content: string[];
+  created_at?: string;
+  modified_at?: string;
+  [key: string]: unknown;
+};
+
+export type FileMap = Record<string, FileData>;
+export type FileInputMap = Record<string, FileData | string>;
+
 export interface TodoItem {
   id: string;
   content: string;

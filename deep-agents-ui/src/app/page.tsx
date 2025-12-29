@@ -16,7 +16,7 @@ import {
 import { ThreadList } from "@/app/components/ThreadList";
 import { ChatProvider } from "@/providers/ChatProvider";
 import { ChatInterface } from "@/app/components/ChatInterface";
-import { UploadManager } from "@/app/components/UploadManager";
+import { WorkspacePanel } from "@/app/components/WorkspacePanel";
 
 interface HomePageInnerProps {
   config: StandaloneConfig;
@@ -111,19 +111,16 @@ function HomePageInner({
         onSave={handleSaveConfig}
         initialConfig={config}
       />
-      <div className="relative flex min-h-screen flex-col bg-[radial-gradient(circle_at_10%_20%,#f7fbff_0,#eef2f7_45%,#e8edf5_100%)] text-slate-900">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_10%,rgba(59,130,246,0.08),transparent_35%),radial-gradient(circle_at_15%_80%,rgba(34,197,94,0.07),transparent_30%)]" />
-        <header className="relative z-10 mx-6 mt-4 flex h-16 items-center justify-between rounded-2xl border border-white/60 bg-white/70 px-6 shadow-[0_8px_30px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+      <div className="flex h-screen flex-col">
+        <header className="flex h-16 items-center justify-between border-b border-border px-6">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-              Deep Agent UI
-            </h1>
+            <h1 className="text-xl font-semibold">Deep Agent UI</h1>
             {!sidebar && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSidebar("1")}
-                className="rounded-full border border-white/80 bg-white/70 p-3 text-slate-800 shadow-sm backdrop-blur hover:bg-white"
+                className="rounded-md border border-border bg-card p-3 text-foreground hover:bg-accent"
               >
                 <MessagesSquare className="mr-2 h-4 w-4" />
                 Threads
@@ -136,15 +133,15 @@ function HomePageInner({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <div className="rounded-full border border-white/70 bg-white/60 px-3 py-1 text-sm text-slate-600 backdrop-blur">
+            <div className="text-sm text-muted-foreground">
               <span className="font-medium">Assistant:</span>{" "}
               {config.assistantId}
             </div>
+            <WorkspacePanel />
             <Button
               variant="outline"
               size="sm"
               onClick={() => setConfigDialogOpen(true)}
-              className="rounded-full border-white/80 bg-white/70 text-slate-800 backdrop-blur"
             >
               <Settings className="mr-2 h-4 w-4" />
               Settings
@@ -154,7 +151,7 @@ function HomePageInner({
               size="sm"
               onClick={() => setThreadId(null)}
               disabled={!threadId}
-              className="rounded-full border-transparent bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-4 text-white shadow-md hover:shadow-lg"
+              className="border-[#2F6868] bg-[#2F6868] text-white hover:bg-[#2F6868]/80"
             >
               <SquarePen className="mr-2 h-4 w-4" />
               New Thread
@@ -162,52 +159,46 @@ function HomePageInner({
           </div>
         </header>
 
-        <div className="relative z-10 flex-1 overflow-hidden px-6 pb-6 pt-4">
-          <div className="flex h-full flex-col gap-4">
-            <UploadManager />
-            <div className="min-h-0 flex-1 overflow-hidden rounded-3xl border border-white/70 bg-white/80 shadow-[0_20px_60px_rgba(15,23,42,0.15)] backdrop-blur-2xl">
-              <ResizablePanelGroup
-                direction="horizontal"
-                autoSaveId="standalone-chat"
-                className="h-full"
-              >
-                {sidebar && (
-                  <>
-                    <ResizablePanel
-                      id="thread-history"
-                      order={1}
-                      defaultSize={25}
-                      minSize={20}
-                      className="relative min-w-[380px]"
-                    >
-                      <ThreadList
-                        onThreadSelect={async (id) => {
-                          await setThreadId(id);
-                        }}
-                        onMutateReady={(fn) => setMutateThreads(() => fn)}
-                        onClose={() => setSidebar(null)}
-                        onInterruptCountChange={setInterruptCount}
-                      />
-                    </ResizablePanel>
-                    <ResizableHandle className="bg-white/60" />
-                  </>
-                )}
-
+        <div className="flex-1 overflow-hidden">
+          <ResizablePanelGroup
+            direction="horizontal"
+            autoSaveId="standalone-chat"
+          >
+            {sidebar && (
+              <>
                 <ResizablePanel
-                  id="chat"
-                  className="relative flex flex-col bg-transparent"
-                  order={2}
+                  id="thread-history"
+                  order={1}
+                  defaultSize={25}
+                  minSize={20}
+                  className="relative min-w-[380px]"
                 >
-                  <ChatProvider
-                    activeAssistant={assistant}
-                    onHistoryRevalidate={() => mutateThreads?.()}
-                  >
-                    <ChatInterface assistant={assistant} />
-                  </ChatProvider>
+                  <ThreadList
+                    onThreadSelect={async (id) => {
+                      await setThreadId(id);
+                    }}
+                    onMutateReady={(fn) => setMutateThreads(() => fn)}
+                    onClose={() => setSidebar(null)}
+                    onInterruptCountChange={setInterruptCount}
+                  />
                 </ResizablePanel>
-              </ResizablePanelGroup>
-            </div>
-          </div>
+                <ResizableHandle />
+              </>
+            )}
+
+            <ResizablePanel
+              id="chat"
+              className="relative flex flex-col"
+              order={2}
+            >
+              <ChatProvider
+                activeAssistant={assistant}
+                onHistoryRevalidate={() => mutateThreads?.()}
+              >
+                <ChatInterface assistant={assistant} />
+              </ChatProvider>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </div>
       </div>
     </>
