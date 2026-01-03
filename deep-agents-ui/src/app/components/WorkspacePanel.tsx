@@ -33,7 +33,6 @@ type WorkspaceNode = {
   children?: WorkspaceNode[];
 };
 
-const WORKSPACE_ROOT = "/workspace";
 const ROOT_KEY = "__workspace_root__";
 
 function formatBytes(bytes: number) {
@@ -50,103 +49,17 @@ function formatBytes(bytes: number) {
   }`;
 }
 
-function normalizeSlashes(value: string) {
-  return value.replace(/\\/g, "/");
-}
-
-function trimLeadingSlashes(value: string) {
-  return value.replace(/^\/+/, "");
-}
-
-function trimTrailingSlashes(value: string) {
-  return value.replace(/\/+$/, "");
-}
-
-function normalizePathSegments(value: string) {
-  const segments = value.split("/").filter(Boolean);
-  const output: string[] = [];
-  segments.forEach((segment) => {
-    if (segment === ".") return;
-    if (segment === "..") {
-      output.pop();
-      return;
-    }
-    output.push(segment);
-  });
-  return output.join("/");
-}
-
-function toWorkspaceRelativePath(value: string) {
-  if (!value) return "";
-  const normalized = trimTrailingSlashes(
-    normalizeSlashes(value).replace(/^(\.\/)+/, "")
-  );
-  const lower = normalized.toLowerCase();
-  const workspaceMarker = "/workspace/";
-  const workspaceIndex = lower.lastIndexOf(workspaceMarker);
-  if (workspaceIndex >= 0) {
-    return normalizePathSegments(
-      trimLeadingSlashes(normalized.slice(workspaceIndex + workspaceMarker.length))
-    );
-  }
-  if (lower.endsWith("/workspace")) {
-    return "";
-  }
-  const trimmed = trimLeadingSlashes(normalized);
-  if (!trimmed || trimmed.toLowerCase() === "workspace") return "";
-  if (trimmed.toLowerCase().startsWith("workspace/")) {
-    return normalizePathSegments(trimmed.slice("workspace/".length));
-  }
-  return normalizePathSegments(trimmed);
-}
-
-function buildWorkspacePath(value: string) {
-  const relative = toWorkspaceRelativePath(value);
-  return relative ? `${WORKSPACE_ROOT}/${relative}` : WORKSPACE_ROOT;
-}
-
-function buildWorkspaceDisplayPath(value: string) {
-  const relative = toWorkspaceRelativePath(value);
-  return relative ? `workspace/${relative}` : "workspace";
-}
-
-function getNodeKey(value: string) {
-  const relative = toWorkspaceRelativePath(value);
-  return relative || ROOT_KEY;
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-  return fallback;
-}
-
-function parseContentDispositionFilename(header: string | null) {
-  if (!header) return null;
-  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(header);
-  if (utf8Match?.[1]) {
-    try {
-      return decodeURIComponent(utf8Match[1]);
-    } catch {
-      return utf8Match[1];
-    }
-  }
-  const asciiMatch = /filename=\"?([^\";]+)\"?/i.exec(header);
-  return asciiMatch?.[1] || null;
-}
-
 export function WorkspacePanel() {
   const [open, setOpen] = useState(false);
   const [tree, setTree] = useState<WorkspaceNode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [downloading, setDownloading] = useState<Set<string>>(
+    () => new Set()
+  );
   const [expanded, setExpanded] = useState<Set<string>>(
     () => new Set([ROOT_KEY])
-  );
-  const [downloadingKeys, setDownloadingKeys] = useState<Set<string>>(
-    () => new Set()
   );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -159,8 +72,8 @@ export function WorkspacePanel() {
       }
       const data = await response.json();
       setTree(data?.tree ?? null);
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Failed to load workspace files"));
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to load workspace files");
     } finally {
       setIsLoading(false);
     }
@@ -189,7 +102,7 @@ export function WorkspacePanel() {
       if (!fileList?.length) return;
       setIsUploading(true);
       try {
-        for (const file of fileList) {
+        for (const file of Array.from(fileList)) {
           const formData = new FormData();
           formData.append("file", file);
           const response = await fetch("/api/workspace", {
@@ -205,8 +118,8 @@ export function WorkspacePanel() {
           `Uploaded ${fileList.length} file${fileList.length === 1 ? "" : "s"}`
         );
         await fetchTree();
-      } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to upload file"));
+      } catch (error: any) {
+        toast.error(error?.message || "Failed to upload file");
       } finally {
         setIsUploading(false);
         if (fileInputRef.current) {
@@ -290,7 +203,7 @@ export function WorkspacePanel() {
     const next = new Set<string>();
     const visit = (node: WorkspaceNode) => {
       if (node.type === "directory") {
-        next.add(getNodeKey(node.path));
+        next.add(node.path || ROOT_KEY);
         node.children?.forEach(visit);
       }
     };
@@ -302,93 +215,64 @@ export function WorkspacePanel() {
     setExpanded(new Set([ROOT_KEY]));
   }, []);
 
-  const handleDownload = useCallback(async (node: WorkspaceNode) => {
-    if (node.type !== "file") return;
-    const relativePath = toWorkspaceRelativePath(node.path);
-    if (!relativePath) {
-      toast.error("Missing workspace file path.");
-      return;
-    }
-    const nodeKey = getNodeKey(node.path);
-    setDownloadingKeys((prev) => {
-      const next = new Set(prev);
-      next.add(nodeKey);
-      return next;
-    });
-    try {
-      const virtualPath = buildWorkspacePath(node.path);
-      const response = await fetch(
-        `/api/workspace?path=${encodeURIComponent(virtualPath)}`,
-        { cache: "no-store" }
-      );
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(
-          data?.error || `Failed to download ${node.name || "file"}`
-        );
-      }
-      const contentType = response.headers.get("content-type") || "";
-      let blob: Blob;
-      let fileName = node.name || relativePath.split("/").pop() || "download";
-      if (contentType.includes("application/json")) {
-        const data = await response.json().catch(() => ({}));
-        if (typeof data?.error === "string") {
-          throw new Error(data.error);
-        }
-        if (typeof data?.name === "string") {
-          fileName = data.name;
-        }
-        if (typeof data?.content === "string") {
-          const mimeType =
-            typeof data?.mimeType === "string" ? data.mimeType : "text/plain";
-          blob = new Blob([data.content], { type: mimeType });
-        } else {
-          blob = new Blob([JSON.stringify(data, null, 2)], {
-            type: "application/json",
-          });
-          if (!fileName.endsWith(".json")) {
-            fileName = `${fileName}.json`;
-          }
-        }
-      } else {
-        blob = await response.blob();
-        const headerName = parseContentDispositionFilename(
-          response.headers.get("content-disposition")
-        );
-        if (headerName) {
-          fileName = headerName;
-        }
-      }
-      const safeFileName =
-        fileName.split("/").pop()?.split("\\").pop() || "download";
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = safeFileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
-      toast.success(`Downloaded ${safeFileName}`);
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Failed to download file"));
-    } finally {
-      setDownloadingKeys((prev) => {
+  const updateDownloadState = useCallback(
+    (nodeKey: string, isActive: boolean) => {
+      setDownloading((prev) => {
         const next = new Set(prev);
-        next.delete(nodeKey);
+        if (isActive) {
+          next.add(nodeKey);
+        } else {
+          next.delete(nodeKey);
+        }
         return next;
       });
-    }
-  }, []);
+    },
+    []
+  );
+
+  const handleDownload = useCallback(
+    async (node: WorkspaceNode) => {
+      if (!node.path) {
+        toast.error("Unable to download this file.");
+        return;
+      }
+      const nodeKey = node.path || ROOT_KEY;
+      updateDownloadState(nodeKey, true);
+      try {
+        const params = new URLSearchParams({ path: node.path });
+        const response = await fetch(
+          `/api/workspace/download?${params.toString()}`
+        );
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to download file");
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = node.name || "download";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (error: any) {
+        toast.error(error?.message || "Failed to download file");
+      } finally {
+        updateDownloadState(nodeKey, false);
+      }
+    },
+    [updateDownloadState]
+  );
 
   const renderNode = useCallback(
     (node: WorkspaceNode, depth: number) => {
-      const nodeKey = getNodeKey(node.path);
-      const displayPath = buildWorkspaceDisplayPath(node.path);
+      const nodeKey = node.path || ROOT_KEY;
+      const displayPath = node.path ? `workspace/${node.path}` : "workspace";
       const isDirectory = node.type === "directory";
       const isExpanded = expanded.has(nodeKey);
+      const isDownloading = downloading.has(nodeKey);
       const indent = depth * 16 + 8;
-      const isDownloading = downloadingKeys.has(nodeKey);
 
       const rowContent = (
         <>
@@ -407,13 +291,13 @@ export function WorkspacePanel() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           )}
           <span
-            className="min-w-0 flex-1 truncate text-sm text-foreground"
+            className="truncate text-sm text-foreground"
             title={displayPath}
           >
             {node.name}
           </span>
           {node.type === "file" && (
-            <div className="flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2">
               {node.size != null && (
                 <span className="text-xs text-muted-foreground">
                   {formatBytes(node.size)}
@@ -424,12 +308,10 @@ export function WorkspacePanel() {
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleDownload(node);
-                }}
+                onClick={() => handleDownload(node)}
                 disabled={isDownloading}
                 aria-label={`Download ${node.name}`}
+                title={`Download ${node.name}`}
               >
                 {isDownloading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -469,7 +351,7 @@ export function WorkspacePanel() {
         </div>
       );
     },
-    [downloadingKeys, expanded, handleDownload, toggleExpanded]
+    [downloading, expanded, handleDownload, toggleExpanded]
   );
 
   const treeContent = (() => {
