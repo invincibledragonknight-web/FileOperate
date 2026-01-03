@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dotenv import load_dotenv
 
-from renderer import _DEFAULT_RENDERER
-from agent import build_agent
+from smartagent.renderer import _DEFAULT_RENDERER
+from smartagent.agent import build_agent
 
 
 load_dotenv(".env", override=True)
