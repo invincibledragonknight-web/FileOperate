@@ -2,6 +2,10 @@ from pathlib import Path
 from langchain.tools import tool
 from langgraph.types import Overwrite
 
+from smartagent.renderer import _DEFAULT_RENDERER
+from rich.panel import Panel
+from rich.text import Text
+
 from pathlib import Path
 
 WORKSPACE_ROOT = Path("./workspace").resolve()

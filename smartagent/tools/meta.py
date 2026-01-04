@@ -28,17 +28,3 @@ def think_tool(reflection: str) -> str:
         Confirmation that reflection was recorded for decision-making
     """
     return f"Reflection recorded: {reflection}"
-
-    
-all_tools = [
-    tree_view_workspace,
-    unzip_workspace_file,
-    delete_workspace_file,
-    move_workspace_file,
-    pdf_reader,
-    word_reader,
-    audio_transcribe,
-    excel_entry_extractor,
-    excel_schema_reader,
-    think_tool
-]

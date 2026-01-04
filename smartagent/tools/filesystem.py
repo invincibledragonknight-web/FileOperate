@@ -7,7 +7,7 @@ import time
 
 from langchain.tools import tool
 
-from workspace import WORKSPACE_ROOT, resolve_workspace_path, safe_fix_zip_filename
+from smartagent.workspace import WORKSPACE_ROOT, resolve_workspace_path, safe_fix_zip_filename
 
 @tool(parse_docstring=True)
 def unzip_workspace_file(virtual_zip_path: str) -> dict:

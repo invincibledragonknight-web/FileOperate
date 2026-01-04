@@ -1,3 +1,4 @@
 from .orchestrator import ORCHESTRATOR_SYSTEM_PROMPT
+from .orchestrator_sandbox import ORCHESTRATOR_SANDBOX_SYSTEM_PROMPT
 from .delegation import DELEGATION_INSTRUCTIONS
 from .transcription import TRANSCRIPT_POSTPROCESSOR_INSTRUCTIONS, current_date

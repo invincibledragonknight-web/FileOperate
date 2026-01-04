@@ -4,7 +4,7 @@ from typing import Optional
 
 from langchain.tools import tool
 
-from workspace import resolve_workspace_path
+from smartagent.workspace import resolve_workspace_path
 
 @tool(parse_docstring=True)
 def audio_transcribe(

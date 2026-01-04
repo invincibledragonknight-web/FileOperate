@@ -9,6 +9,7 @@ from langchain_openai import ChatOpenAI
 from smartagent.tools import ALL_TOOLS, think_tool
 from smartagent.prompts import (
     ORCHESTRATOR_SYSTEM_PROMPT,
+    ORCHESTRATOR_SANDBOX_SYSTEM_PROMPT,
     DELEGATION_INSTRUCTIONS,
     TRANSCRIPT_POSTPROCESSOR_INSTRUCTIONS,
     current_date,
@@ -51,49 +52,15 @@ def build_model():
     )
 
 
-model = build_model()
 
-from deepagents import create_deep_agent
-from deepagents.backends import CompositeBackend, StateBackend, StoreBackend
-from langgraph.store.memory import InMemoryStore
-from deepagents.backends import FilesystemBackend
-
-
-composite_backend = lambda rt: CompositeBackend(
-    default=StateBackend(rt),
-    routes={
-        "/workspace/": FilesystemBackend(root_dir="./workspace", virtual_mode=True),
-    },
-)
-
-agent = create_deep_agent(
-    model=model,
-    tools=all_tools,
-    system_prompt=ORCHESTRATOR_SYSTEM_PROMPT + DELEGATION_INSTRUCTIONS,
-    subagents=[transcription_processing_agent],
-    backend=composite_backend,
-    interrupt_on={
-        "move_workspace_file": {
-            "allowed_decisions": ["approve", "edit", "reject"]
-        },
-    }
-)
-
-
-def build_agent():
+def build_agent(composite_backend):
     model = build_model()
-
-    composite_backend = lambda rt: CompositeBackend(
-        default=StateBackend(rt),
-        routes={
-            "/workspace/": FilesystemBackend(root_dir="./workspace", virtual_mode=True),
-        },
-    )
 
     return create_deep_agent(
         model=model,
         tools=ALL_TOOLS,
-        system_prompt=ORCHESTRATOR_SYSTEM_PROMPT + DELEGATION_INSTRUCTIONS,
+        # system_prompt=ORCHESTRATOR_SYSTEM_PROMPT + DELEGATION_INSTRUCTIONS,
+        system_prompt = ORCHESTRATOR_SANDBOX_SYSTEM_PROMPT + DELEGATION_INSTRUCTIONS,
         subagents=[transcription_processing_agent],
         backend=composite_backend,
         interrupt_on={

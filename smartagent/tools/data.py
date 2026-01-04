@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from langchain.tools import tool
 
-from workspace import resolve_workspace_path
+from smartagent.workspace import resolve_workspace_path
 
 @tool(parse_docstring=True)
 def excel_schema_reader(virtual_excel_path: str) -> dict:

@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Mapping, Optional
 
 from langchain.tools import tool
 
-from workspace import resolve_workspace_path
+from smartagent.workspace import resolve_workspace_path
 
 @tool(parse_docstring=True)
 def pdf_reader(virtual_pdf_path: str, num_pages: int = 5) -> dict:
