@@ -52,9 +52,20 @@ agent = build_agent(composite_backend)
 
 if __name__ == "__main__":
     final_state = None
+    request_dict = {
+        "report generation": "Write me a /final_report.md based on the files from the zip file inside the /workspace, write the summary report in pure Chinese, make it extremly long and detailed, use as many as references from Chinese Commnunist Party history or Communism Theory as possible, make it official and academic style, targeting as a report for the central standing committee of the Communist Party of China.",
+
+        "excel_analysis1": "我希望了解给出的excel的整体情况，其中我想知道来自山西省的有哪些人？硕士学历以及更高学历的有哪些人？",
+        "meeting_minutes": "我有一个会议的录音文件，我希望生成一份完整详细正规的会议纪要。",
+        "tmp_request": "write me a report on the detatiledl history of CCP."
+    }
     request_message = {
-        "role": "user",
-        "content": "Create a text file named hello.txt with the content 'Hello, World!' and a markdown file named info.md with a brief description about SmartAgent.",
+        "messages": [
+            {
+                "role": "user",
+                "content": request_dict["tmp_request"],
+            }
+        ],
     }
     for mode, chunk in agent.stream(
         request_message,
