@@ -23,16 +23,14 @@ load_dotenv(
     override=True,
 )
 composite_backend = lambda rt: CompositeBackend(
-    default=LocalSandboxBackend(
-        root_dir=".",
-        virtual_mode=True,
-        path_aliases={
-            "/workspace": workspace_root,
-        },
-    ),
+    default=StateBackend(rt),
     routes={
         "/workspace/": LocalSandboxBackend(
             root_dir=str(_REPO_ROOT / "workspace"),
+            virtual_mode=True,
+        ),
+        "/skills/": LocalSandboxBackend(
+            root_dir=str(_REPO_ROOT / "skills"),
             virtual_mode=True,
         ),
     },
