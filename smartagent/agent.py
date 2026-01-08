@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+from typing import Sequence
 
 from deepagents import create_deep_agent
 from deepagents.backends import CompositeBackend, StateBackend, FilesystemBackend
@@ -53,7 +55,10 @@ def build_model():
 
 
 
-def build_agent(composite_backend):
+def build_agent(
+    composite_backend,
+    skills_dirs: Sequence[str | Path | tuple[str | Path, str]] | str | Path | None = None,
+):
     model = build_model()
 
     return create_deep_agent(
@@ -63,6 +68,7 @@ def build_agent(composite_backend):
         system_prompt = ORCHESTRATOR_SANDBOX_SYSTEM_PROMPT + DELEGATION_INSTRUCTIONS,
         subagents=[transcription_processing_agent],
         backend=composite_backend,
+        skills_dirs=skills_dirs,
         interrupt_on={
             "move_workspace_file": {
                 "allowed_decisions": ["approve", "edit", "reject"]

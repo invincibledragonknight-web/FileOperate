@@ -14,7 +14,7 @@ from deepagents.backends import FilesystemBackend
 from smartagent.sandbox import LocalSandboxBackend
 from pathlib import Path
 
-_REPO_ROOT = Path(__file__).resolve().parent
+_REPO_ROOT = Path(__file__).resolve().parents[1]
 workspace_root = str((_REPO_ROOT / "workspace").resolve())
 skills_root = str((_REPO_ROOT / "skills").resolve())
 # Load .env file
@@ -45,7 +45,10 @@ composite_backend = lambda rt: CompositeBackend(
 
 load_dotenv(".env", override=True)
 
-agent = build_agent(composite_backend)
+agent = build_agent(
+    composite_backend,
+    skills_dirs=[(skills_root, "/skills")],
+)
 
 
 
@@ -57,7 +60,7 @@ if __name__ == "__main__":
 
         "excel_analysis1": "我希望了解给出的excel的整体情况，其中我想知道来自山西省的有哪些人？硕士学历以及更高学历的有哪些人？",
         "meeting_minutes": "我有一个会议的录音文件，我希望生成一份完整详细正规的会议纪要。",
-        "tmp_request": "write me a report on the detatiledl history of CCP."
+        "tmp_request": "What skills do you have?."
     }
     request_message = {
         "messages": [
@@ -80,4 +83,4 @@ if __name__ == "__main__":
 
     # Now you have the final output (messages + files) without invoking again
     _DEFAULT_RENDERER.render_final_output(final_state)
-    print(final_state.get("files", {}))
+    # print(final_state.get("files", {}))
