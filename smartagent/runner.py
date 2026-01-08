@@ -60,13 +60,15 @@ if __name__ == "__main__":
 
         "excel_analysis1": "我希望了解给出的excel的整体情况，其中我想知道来自山西省的有哪些人？硕士学历以及更高学历的有哪些人？",
         "meeting_minutes": "我有一个会议的录音文件，我希望生成一份完整详细正规的会议纪要。",
-        "tmp_request": "What skills do you have?."
+        "sandbox-test": "Create a python script that uses matplotlib to draw a highly detailed and sophisticated algorithmic art and save it as /workspace/algorithmic_art.png",
+        "tmp_request": "What skills do you have?.",
+        "skill_request": "create me a highly sophisticated algorithmic art using your skill to finish the job."
     }
     request_message = {
         "messages": [
             {
                 "role": "user",
-                "content": request_dict["tmp_request"],
+                "content": request_dict["sandbox-test"],
             }
         ],
     }
@@ -79,6 +81,7 @@ if __name__ == "__main__":
             _DEFAULT_RENDERER.render_stream_event(chunk)
         elif mode == "values":
             # Keep overwriting; the last one is the final state
+            print(chunk)
             final_state = chunk
 
     # Now you have the final output (messages + files) without invoking again
