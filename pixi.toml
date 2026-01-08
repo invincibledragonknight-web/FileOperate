@@ -16,7 +16,7 @@ extra-index-urls = ["https://pypi.org/simple"]
 
 [pypi-dependencies]
 langgraph-cli = { version = ">=0.4.7, <0.5", extras = ["inmem"] }
-deepagents = ">=0.2.8, <0.3"
+deepagents = { path = "deepagents/libs/deepagents", editable = true }
 langchain = ">=1.1.0, <2"
 langchain-openai = ">=1.1.0, <2"
 langgraph = ">=1.0.4, <2"
