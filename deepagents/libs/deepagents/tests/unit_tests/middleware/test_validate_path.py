@@ -52,6 +52,14 @@ class TestValidatePath:
         with pytest.raises(ValueError, match="Windows absolute paths are not supported"):
             _validate_path("D:/data/output.csv")
 
+    def test_windows_absolute_path_allowed_when_enabled(self):
+        """Test that Windows absolute paths are allowed when explicitly enabled."""
+        assert (
+            _validate_path("C:\\Users\\Documents\\file.txt", allow_windows_absolute=True)
+            == "C:/Users/Documents/file.txt"
+        )
+        assert _validate_path("D:/data/output.csv", allow_windows_absolute=True) == "D:/data/output.csv"
+
     def test_allowed_prefixes_enforcement(self):
         """Test that allowed_prefixes parameter is enforced."""
         # Should pass when prefix matches

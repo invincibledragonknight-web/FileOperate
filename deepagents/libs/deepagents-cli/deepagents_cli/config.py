@@ -142,6 +142,7 @@ class Settings:
         project_root: Current project root directory (if in a git project)
 
         openai_api_key: OpenAI API key if available
+        openai_base_url: OpenAI-compatible base URL if configured
         anthropic_api_key: Anthropic API key if available
         tavily_api_key: Tavily API key if available
         deepagents_langchain_project: LangSmith project name for deepagents agent tracing
@@ -150,6 +151,7 @@ class Settings:
 
     # API keys
     openai_api_key: str | None
+    openai_base_url: str | None
     anthropic_api_key: str | None
     google_api_key: str | None
     tavily_api_key: str | None
@@ -177,6 +179,9 @@ class Settings:
         """
         # Detect API keys
         openai_key = os.environ.get("OPENAI_API_KEY")
+        openai_base_url = os.environ.get("OPENAI_BASE_URL") or os.environ.get(
+            "OPENAI_API_BASE"
+        )
         anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
         google_key = os.environ.get("GOOGLE_API_KEY")
         tavily_key = os.environ.get("TAVILY_API_KEY")
@@ -194,6 +199,7 @@ class Settings:
 
         return cls(
             openai_api_key=openai_key,
+            openai_base_url=openai_base_url,
             anthropic_api_key=anthropic_key,
             google_api_key=google_key,
             tavily_api_key=tavily_key,
@@ -410,7 +416,7 @@ def _detect_provider(model_name: str) -> str | None:
         Provider name (openai, anthropic, google) or None if can't detect
     """
     model_lower = model_name.lower()
-    if any(x in model_lower for x in ["gpt", "o1", "o3"]):
+    if any(x in model_lower for x in ["gpt", "o1", "o3", "deepseek"]):
         return "openai"
     if "claude" in model_lower:
         return "anthropic"
@@ -442,7 +448,7 @@ def create_model(model_name_override: str | None = None) -> BaseChatModel:
                 f"[bold red]Error:[/bold red] Could not detect provider from model name: {model_name_override}"
             )
             console.print("\nSupported model name patterns:")
-            console.print("  - OpenAI: gpt-*, o1-*, o3-*")
+            console.print("  - OpenAI: gpt-*, o1-*, o3-*, deepseek-*")
             console.print("  - Anthropic: claude-*")
             console.print("  - Google: gemini-*")
             sys.exit(1)
@@ -478,7 +484,7 @@ def create_model(model_name_override: str | None = None) -> BaseChatModel:
     else:
         console.print("[bold red]Error:[/bold red] No API key configured.")
         console.print("\nPlease set one of the following environment variables:")
-        console.print("  - OPENAI_API_KEY     (for OpenAI models like gpt-5-mini)")
+        console.print("  - OPENAI_API_KEY     (for OpenAI or OpenAI-compatible models)")
         console.print("  - ANTHROPIC_API_KEY  (for Claude models)")
         console.print("  - GOOGLE_API_KEY     (for Google Gemini models)")
         console.print("\nExample:")
@@ -493,6 +499,21 @@ def create_model(model_name_override: str | None = None) -> BaseChatModel:
     # Create and return the model
     if provider == "openai":
         from langchain_openai import ChatOpenAI
+
+        base_url = settings.openai_base_url
+        if base_url:
+            if "OPENAI_BASE_URL" not in os.environ:
+                os.environ["OPENAI_BASE_URL"] = base_url
+            if "OPENAI_API_BASE" not in os.environ:
+                os.environ["OPENAI_API_BASE"] = base_url
+
+            import inspect
+
+            init_params = inspect.signature(ChatOpenAI.__init__).parameters
+            if "base_url" in init_params:
+                return ChatOpenAI(model=model_name, base_url=base_url)
+            if "openai_api_base" in init_params:
+                return ChatOpenAI(model=model_name, openai_api_base=base_url)
 
         return ChatOpenAI(model=model_name)
     if provider == "anthropic":
